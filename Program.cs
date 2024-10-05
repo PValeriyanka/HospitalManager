@@ -1,13 +1,18 @@
+using HospitalDAO.Data;
 using HospitalManager.Data;
+using Humanizer.Configuration;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+
 
 namespace HospitalManager
 {
     public class Program
     {
         public static void Main(string[] args)
-        {
+        {            
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -43,6 +48,31 @@ namespace HospitalManager
             app.MapRazorPages();
 
             app.Run();
+        }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            ConfigurationBuilder builder = new();
+
+            ///Установка пути к текущему каталогу
+            builder.SetBasePath(Directory.GetCurrentDirectory());
+
+            // получаем конфигурацию из файла appsettings.json
+            builder.AddJsonFile("appsettings.json");
+
+            // создаем конфигурацию
+            IConfigurationRoot configuration = builder.AddUserSecrets<Program>().Build();
+
+            SqlConnectionStringBuilder sqlConnectionStringBuilder = new(configuration.GetConnectionString("RemoteConnection"))
+            {
+                Password = configuration["Database:password"],
+                UserID = configuration["Database:login"]
+            };
+
+            string connectionString = sqlConnectionStringBuilder.ConnectionString;
+
+            services.AddDbContext<HospitalContext>(options => options.UseSqlServer(connectionString));
+            services.AddMvc();
         }
     }
 }
